@@ -37,6 +37,7 @@ class _MyHomePageState extends State<MyHomePage> {
   List<int> year = [];
   List<String> link = [];
   List<String> image = [];
+  List<int> items = [];
 
   getDataFromSheets() async {
     var raw = await http.get(Uri.parse(
@@ -49,7 +50,6 @@ class _MyHomePageState extends State<MyHomePage> {
       link.add(element['link']);
       image.add(element['image']);
     });
-    print('used');
   }
 
   @override
@@ -60,37 +60,57 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    MediaQueryData device = MediaQuery.of(context);
+    int noOfItems = (device.size.width.toInt()) ~/ 100;
+    var column2;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Muggle Music'),
+        title: const Center(child: Text('Muggle Music')),
       ),
-      body: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: name.length,
-        itemBuilder: (context, index) {
-          return DatabaseTile(
-            image: image[index],
-            name: name[index],
-            year: year[index].toString(),
-            link: link[index],
-          );
-        },
+      body: SafeArea(
+        child: Column(
+            key: column2,
+            children: items
+                .map((i) => Expanded(
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: noOfItems,
+                        itemBuilder: (context, index) {
+                          return DatabaseTile(
+                            image: image[index + (i * noOfItems)],
+                            name: name[index + (i * noOfItems)],
+                            year: year[index + (i * noOfItems)].toString(),
+                            link: link[index + (i * noOfItems)],
+                          );
+                        },
+                      ),
+                    ))
+                .toList()),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          for (int i = 0; i <= name.length ~/ noOfItems; i++) {
+            items.add(i);
+          }
           setState(() {
-            ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: name.length,
-              itemBuilder: (context, index) {
-                return DatabaseTile(
-                  image: image[index],
-                  name: name[index],
-                  year: year[index].toString(),
-                  link: link[index],
-                );
-              },
-            );
+            Column(
+                key: column2,
+                children: items
+                    .map((i) => Expanded(
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: noOfItems,
+                            itemBuilder: (context, index) {
+                              return DatabaseTile(
+                                image: image[index + (i * noOfItems)],
+                                name: name[index + (i * noOfItems)],
+                                year: year[index + (i * noOfItems)].toString(),
+                                link: link[index + (i * noOfItems)],
+                              );
+                            },
+                          ),
+                        ))
+                    .toList());
           });
         },
       ),
@@ -100,6 +120,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
 class DatabaseTile extends StatelessWidget {
   final String name, year, link, image;
+
   // ignore: use_key_in_widget_constructors
   const DatabaseTile(
       {required this.link,
@@ -107,8 +128,31 @@ class DatabaseTile extends StatelessWidget {
       required this.year,
       required this.image});
 
+  String imageMaker() {
+    String newImage = image;
+    String nameImage = name;
+    newImage = newImage.replaceFirst(
+        'https://github.com/', 'https://raw.githubusercontent.com/');
+    newImage = newImage.replaceFirst('blob/main/Images/', 'main/Images/');
+    newImage = newImage.replaceFirst('blob/web/Images/', 'web/Images/');
+    if (newImage != image) {
+      newImage = newImage + name + '.jpg';
+    }
+    if (nameImage.contains(' ')) {
+      nameImage = name.replaceAll(' ', '%20');
+    }
+    if (newImage == '') {
+      newImage =
+          'https://raw.githubusercontent.com/mravinshu/mugglemusic/main/Images/' +
+              nameImage +
+              '.jpg';
+    }
+    return newImage;
+  }
+
   @override
   Widget build(BuildContext context) {
+    String newImage = imageMaker();
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: GestureDetector(
@@ -119,7 +163,7 @@ class DatabaseTile extends StatelessWidget {
                 builder: (context) => Player(
                       name: name,
                       link: link,
-                      image: image,
+                      image: newImage,
                     )),
           );
         },
@@ -127,10 +171,13 @@ class DatabaseTile extends StatelessWidget {
           height: 20,
           child: Column(
             children: [
-              Image(
-                image: NetworkImage(image),
-                height: 80,
-                width: 80,
+              Hero(
+                tag: 'img',
+                child: Image(
+                  image: NetworkImage(newImage),
+                  height: 80,
+                  width: 80,
+                ),
               ),
               Card(
                 child: Padding(

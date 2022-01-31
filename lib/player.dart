@@ -3,8 +3,8 @@ import 'package:audioplayers/audioplayers.dart';
 
 AudioCache audioCache = AudioCache();
 AudioPlayer advancedPlayer = AudioPlayer();
-IconData play = Icons.play_arrow;
-Icon player = Icon(Icons.play_arrow);
+Icon player = const Icon(Icons.play_arrow);
+Icon stop = const Icon(Icons.stop);
 
 class Player extends StatefulWidget {
   final String name, link, image;
@@ -18,6 +18,25 @@ class Player extends StatefulWidget {
 
 class _PlayerState extends State<Player> {
   int flag = 0;
+
+  String linkMaker() {
+    String newLink = widget.link;
+    newLink = newLink.replaceFirst('https://drive.google.com/file/d/',
+        'https://www.googleapis.com/drive/v3/files/');
+    newLink = newLink.replaceFirst('/view?usp=sharing',
+        '?alt=media&key=AIzaSyAHZvpRfSSLv8d-PAStwwTzmig4VGx3a1o');
+    return newLink;
+  }
+
+  @override
+  void initState() {
+    advancedPlayer.onSeekComplete.listen((event) => setState(() {
+          flag = 0;
+          player = const Icon(Icons.play_arrow);
+        }));
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,38 +44,54 @@ class _PlayerState extends State<Player> {
         child: Column(
           children: [
             SizedBox(
-              height: 190,
+              height: 200,
               child: Card(
-                child: Image(
-                  image: NetworkImage(widget.image),
+                child: Hero(
+                  tag: 'img',
+                  child: Image(
+                    image: NetworkImage(widget.image),
+                  ),
                 ),
               ),
             ),
-            ElevatedButton(
-              onPressed: () {
-                if (flag == 0) {
-                  flag = 1;
-                } else {
-                  flag = 0;
-                }
-              },
-              child: IconButton(
-                icon: player,
-                onPressed: () async {
-                  if (flag == 0) {
-                    await advancedPlayer.play(widget.link);
-
-                    setState(() {
-                      player = Icon(Icons.pause);
-                    });
-                  } else {
-                    advancedPlayer.pause();
-                    setState(() {
-                      player = Icon(Icons.play_arrow);
-                    });
-                  }
-                },
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    String newLink = linkMaker();
+                    if (flag == 0) {
+                      flag = 1;
+                      advancedPlayer.play(newLink);
+                      setState(() {
+                        player = const Icon(Icons.pause);
+                      });
+                    } else if (flag == 1) {
+                      advancedPlayer.pause();
+                      flag = 2;
+                      setState(() {
+                        player = const Icon(Icons.play_arrow);
+                      });
+                    } else if (flag == 2) {
+                      advancedPlayer.resume();
+                      flag = 1;
+                      setState(() {
+                        player = const Icon(Icons.pause);
+                      });
+                    }
+                  },
+                  child: player,
+                ),
+                ElevatedButton(
+                    onPressed: () {
+                      advancedPlayer.stop();
+                      flag = 0;
+                      setState(() {
+                        player = const Icon(Icons.play_arrow);
+                      });
+                    },
+                    child: stop)
+              ],
             ),
           ],
         ),
